@@ -60,7 +60,25 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 :root[data-theme="dark"] body::before{filter:invert(1);opacity:.09}
 .card{background:color-mix(in srgb,var(--card) 90%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 2px 10px rgba(20,40,80,.08)}
 #rep{display:none}
-@media print{body>*:not(#rep){display:none!important}#rep{display:block;color:#000;font:12px/1.4 system-ui,Arial,sans-serif}body{background:#fff!important;padding:0!important;max-width:none!important}body::before{display:none!important}@page{margin:14mm}#rep h1{font-size:22px;margin:0}#rep h2{font-size:16px;margin:2px 0}#rep h3{font-size:14px;margin:14px 0 4px}#rep .rm{color:#555;margin:2px 0}#rep .rs{font-size:22px;margin:12px 0 2px}#rep .rw{font-size:14px;margin:0}#rep table{width:100%;border-collapse:collapse}#rep td,#rep th{border:1px solid #bbb;padding:4px 6px;text-align:left;vertical-align:top}#rep th{background:#eee}}
+@page{size:A4 portrait;margin:12mm}
+@media print{html,body{width:auto!important;height:auto!important;margin:0!important;padding:0!important;max-width:none!important;background:#fff!important}
+body>*:not(#rep){display:none!important}
+body::before{display:none!important}
+#rep{display:block;color:#000;font:11pt/1.35 Arial,Helvetica,system-ui,sans-serif;width:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+#rep:after{content:"";display:block;clear:both}
+#rep h1{font-size:20pt;margin:0 0 2px}
+#rep h2{font-size:14pt;margin:2px 0}
+#rep h3{font-size:12pt;margin:14px 0 4px;color:#8b1538;break-after:avoid;page-break-after:avoid}
+#rep .rm{color:#555;margin:2px 0;font-size:10pt}
+#rep .rs{font-size:20pt;margin:12px 0 2px}
+#rep .rw{font-size:13pt;margin:0 0 6px}
+#rep table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10pt}
+#rep tr{break-inside:avoid;page-break-inside:avoid}
+#rep td,#rep th{border:1px solid #bbb;padding:4px 6px;text-align:left;vertical-align:top;word-wrap:break-word;overflow-wrap:anywhere}
+#rep th{background:#eee}
+#rep .pt th:nth-child(1){width:9%}#rep .pt th:nth-child(2){width:25%}#rep .pt th:nth-child(3){width:34%}#rep .pt th:nth-child(4),#rep .pt th:nth-child(5),#rep .pt th:nth-child(6){width:10.6%}}
+.toast{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:60;padding:0 10px;display:flex;flex-direction:column;gap:6px}.toast[hidden]{display:none}
+.ti{background:#8b1538;color:#fff;border:2px solid #ffd978;border-radius:12px;padding:12px 14px;font-weight:700;font-size:17px;box-shadow:0 6px 18px rgba(0,0,0,.35);max-width:760px;margin:0 auto;width:100%;cursor:pointer}
 
 .brand{display:flex;align-items:center;gap:12px;padding:10px 14px;margin-bottom:12px;border-radius:16px;color:#fff;background:linear-gradient(120deg,#2b3190,#8b1538);box-shadow:0 4px 14px rgba(43,49,144,.3)}
 .lg{width:56px;height:56px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex:none;overflow:hidden}
@@ -108,6 +126,7 @@ select.fld{margin-top:8px;color:var(--tx)}select.fld option{color:#000}
     <button data-a="undo">↩ Undo</button>
     <button data-a="gate">⇄ Mode</button>
     <button data-a="pdfcur">📄 PDF</button>
+    <button data-a="alerts">🔔 Alerts</button>
     <button data-a="chpw">⏋ Sign out</button>
     <button data-a="theme">◐ Theme</button>
     <button data-a="reset" style="color:var(--red)">Next match ▶</button>
@@ -123,6 +142,7 @@ select.fld{margin-top:8px;color:var(--tx)}select.fld option{color:#000}
 <div id="ask" class="modal" hidden></div>
 <div id="detail" class="modal" hidden></div>
 <div id="rep"></div>
+<div id="toast" class="toast" hidden></div>
 
 <script>
 var PN=['1st half','2nd half','Penalty shoot-out'];
@@ -165,7 +185,7 @@ function repHtml(X){var s0=X.score[0],s1=X.score[1],soS=X.so?soState(X.so):null,
   [0,1].forEach(function(i){
     var named=X.rs[i].reduce(function(a,x){return a+(x.g||0)},0),un=X.score[i]-named;
     h+='<h3>'+esc(X.names[i])+' ('+X.score[i]+' goals)</h3><p class="rm">Yellow cards: '+X.cd[i].y+' | Red cards: '+X.cd[i].r+' | Timeouts: '+X.to[i]+'</p>';
-    h+='<table><tr><th>No.</th><th>Player</th><th>Goals (time)</th><th>Yellow</th><th>Red</th><th>2 min</th></tr>';
+    h+='<table class="pt"><tr><th>No.</th><th>Player</th><th>Goals (time)</th><th>Yellow</th><th>Red</th><th>2 min</th></tr>';
     h+=X.rs[i].length?X.rs[i].map(function(x){return'<tr><td>'+esc(x.n||'-')+'</td><td>'+esc(x.name)+'</td><td>'+(x.g||0)+(x.g?' ('+evs(x,'g')+')':'')+'</td><td>'+evs(x,'y')+'</td><td>'+evs(x,'r')+'</td><td>'+evs(x,'s')+'</td></tr>'}).join(''):'<tr><td colspan="6">No players entered</td></tr>';
     h+='</table>'+(un>0?'<p class="rm">Goals without a named scorer: '+un+'</p>':'')});
   if(X.so&&X.so[0].length+X.so[1].length){var n=Math.max(X.so[0].length,X.so[1].length),cell=function(t,k){var s=X.so[t][k];if(!s)return'-';var q=X.rs[t][s.p];return(q?esc((q.n?q.n+' ':'')+q.name)+' - ':'')+(s.r?'GOAL':'missed')};
@@ -215,6 +235,14 @@ function ytst(t){var e=document.getElementById('ytst');if(e)e.textContent=t}
 function renderLiveCfg(){var e=document.getElementById('liveCfg');if(!e)return;var cur=document.getElementById('ytl'),v=cur?cur.value:LURL;
   e.innerHTML='<h3>Live stream link</h3><p class="meta" style="text-align:left;margin:0 0 8px">Start a YouTube Live (or Facebook Live) and paste its link here. Viewers will watch it on their page.</p><div class="add" style="margin-top:0"><input id="ytl" placeholder="https://www.youtube.com/watch?v=..." value="'+esc(v)+'" aria-label="Live stream link"><button class="pri" data-a="ytsave" style="min-width:0">Save</button></div><div class="row"><button class="x" data-a="ytclear" style="color:var(--red)">Remove link</button></div><div class="meta" id="ytst"></div>'}
 function loadUrl(){if(!DB)return;DB.ref('stream/url').once('value').then(function(s){LURL=s.val()||'';renderLiveCfg()}).catch(function(){})}
+var AC=null;
+function beep(){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state=='suspended')AC.resume();[0,.3,.6].forEach(function(o){var os=AC.createOscillator(),g=AC.createGain();os.type='square';os.frequency.value=900;os.connect(g);g.connect(AC.destination);var t0=AC.currentTime+o;g.gain.setValueAtTime(.2,t0);g.gain.exponentialRampToValueAtTime(.001,t0+.22);os.start(t0);os.stop(t0+.24)})}catch(e){}}
+function notify(msg){beep();try{if(navigator.vibrate)navigator.vibrate([300,120,300,120,300])}catch(e){}
+  var t=document.getElementById('toast');if(t){var d=document.createElement('div');d.className='ti';d.textContent='\u23f1 '+msg;d.onclick=function(){d.remove();if(!t.children.length)t.hidden=true};t.appendChild(d);t.hidden=false;setTimeout(function(){if(d.parentNode){d.remove();if(!t.children.length)t.hidden=true}},20000)}
+  try{if(window.Notification&&Notification.permission=='granted'&&document.hidden)new Notification('2\u2032 suspension over',{body:msg})}catch(e){}}
+document.addEventListener('pointerdown',function(){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state=='suspended')AC.resume()}catch(e){}},{once:true});
+function keepAwake(){try{if(navigator.wakeLock)navigator.wakeLock.request('screen').catch(function(){})}catch(e){}}
+function spOver(t,p){var q=S.rs[t][p],who=q?(' \u2013 '+(q.n?'#'+q.n+' ':'')+q.name):'';var msg='2\u2032 suspension over: '+S.names[t]+who;add(msg,1);notify(msg)}
 function hasAct(X){return X.log.length||X.rs[0].length||X.rs[1].length||X.score[0]||X.score[1]}
 function renderView(){var e=document.getElementById('vbody');
   document.getElementById('vhead').innerHTML=brandHtml()+'<div class="row" style="margin:0 0 10px;justify-content:space-between;align-items:center"><b>Live view</b><button data-a="gate">⇄ Mode</button></div>';var h='';
@@ -262,7 +290,7 @@ function tick(){
   if(!S.run){return}
   var n=Date.now(),d=(n-last)/1000;last=n;
   S.el+=d;
-  for(var t=0;t<2;t++){S.sp[t]=S.sp[t].map(function(x){return{v:x.v-d,p:x.p}}).filter(function(x){return x.v>0})}
+  var expd=false;for(var t=0;t<2;t++){var nx=S.sp[t].map(function(x){return{v:x.v-d,p:x.p}});nx.filter(function(x){return x.v<=0}).forEach(function(x){expd=true;spOver(t,x.p)});S.sp[t]=nx.filter(function(x){return x.v>0})}if(expd){save();render()}
   if(S.el>=plen()){S.el=plen();S.run=false;add('End of '+PN[S.per]+' ('+S.score[0]+'–'+S.score[1]+')');try{navigator.vibrate&&navigator.vibrate([400,150,400])}catch(e){}save();render();return}
   paintClock();paintSusp();
 }
@@ -323,6 +351,7 @@ function handle(b,p){
   if(a=='reset'){ask('Save this match, create its PDF report and start the next one?',function(){saveCurrent();var done=JSON.parse(JSON.stringify(S));snap();S=Object.assign(fresh(),{len:S.len,maxto:S.maxto});save();render();window.scrollTo(0,0);if(hasAct(done))printReport(done)});return}
   if(a=='gview'){gview();return}
   if(a=='gadmin'){gadmin();return}
+  if(a=='alerts'){try{if(window.Notification&&Notification.permission=='default')Notification.requestPermission()}catch(e){}keepAwake();notify('Alerts are on. You will be alerted when a 2′ suspension ends.');return}
   if(a=='ytsave'){var yl=val('ytl').trim();if(yl&&!/^https:\/\//.test(yl)){ytst('The link must start with https://');return}try{DB.ref('stream/url').set(yl||null);LURL=yl;ytst(yl?'Saved. Viewers can now watch it.':'Link removed.')}catch(e){ytst('Could not save the link.')}return}
   if(a=='ytclear'){try{DB.ref('stream/url').remove()}catch(e){}LURL='';render();return}
   if(a=='tmadd'){var tn=val('tmn').trim();if(tn){var nt={id:String(Date.now()),name:tn,players:[]};TM.push(nt);TSEL=nt.id;document.getElementById('tmn').value='';saveTM();render()}return}
@@ -346,7 +375,7 @@ function handle(b,p){
   if(a=='undo'){if(H.length){S=JSON.parse(H.pop());S.run=false;save();render()}return}
   if(a=='reset'){if(confirm('Start a new match? This clears score, clock and log.')){snap();S=Object.assign(fresh(),{len:S.len,maxto:S.maxto,names:S.names,rs:S.rs.map(function(r){return r.map(function(x){return{n:x.n,name:x.name,g:0,y:0,r:0,s:0}})})});save();render()}return}
   snap();
-  if(a=='run'){if(S.el>=plen()&&!S.run){H.pop();return}S.run=!S.run;last=Date.now();add(S.run?'Clock started':'Clock paused')}
+  if(a=='run'){if(S.el>=plen()&&!S.run){H.pop();return}S.run=!S.run;last=Date.now();if(S.run)keepAwake();add(S.run?'Clock started':'Clock paused')}
   else if(a=='next'){S.per++;S.el=0;S.run=false;S.sp=[[],[]];add('Start of '+PN[S.per]+' (ready)')}
   else if(a=='prev'){S.per--;S.el=(S.per==1?plen():0);S.run=false;add('Back to '+PN[S.per])}
   else if(a=='adj'){S.el=Math.min(plen(),Math.max(0,S.el-(+b.dataset.v)));add('Clock adjusted '+b.dataset.v+' s')}
