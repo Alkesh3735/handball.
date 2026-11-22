@@ -51,6 +51,16 @@ label{font-size:14px;color:var(--mut)}
 .pr{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd)}
 .st{color:var(--mut);font-size:12px}.x{min-height:0;padding:2px 8px}
 .add{display:flex;gap:6px;margin-top:8px}.add input{flex:1;min-width:0;border:1px solid var(--bd);background:transparent;border-radius:8px;padding:8px}
+
+body{background:linear-gradient(160deg,#dcebff 0%,#eef8f0 55%,#fff3e0 100%) fixed}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body{background:linear-gradient(160deg,#08111f 0%,#0f2036 55%,#1b1a33 100%) fixed}}
+:root[data-theme="dark"] body{background:linear-gradient(160deg,#08111f 0%,#0f2036 55%,#1b1a33 100%) fixed}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 400' preserveAspectRatio='xMidYMid slice'%3E%3Cg fill='none' stroke='black' stroke-width='3'%3E%3Crect x='20' y='20' width='760' height='360' rx='6'/%3E%3Cline x1='400' y1='20' x2='400' y2='380'/%3E%3Ccircle cx='400' cy='200' r='42'/%3E%3Cpath d='M20 80A120 120 0 0 1 20 320'/%3E%3Cpath d='M780 80A120 120 0 0 0 780 320'/%3E%3Cpath stroke-dasharray='12 10' d='M20 20A180 180 0 0 1 20 380'/%3E%3Cpath stroke-dasharray='12 10' d='M780 20A180 180 0 0 0 780 380'/%3E%3Cline x1='262' y1='200' x2='282' y2='200'/%3E%3Cline x1='518' y1='200' x2='538' y2='200'/%3E%3C/g%3E%3C/svg%3E") center/cover no-repeat;opacity:.10}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body::before{filter:invert(1);opacity:.09}}
+:root[data-theme="dark"] body::before{filter:invert(1);opacity:.09}
+.card{background:color-mix(in srgb,var(--card) 90%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:0 2px 10px rgba(20,40,80,.08)}
+#rep{display:none}
+@media print{body>*:not(#rep){display:none!important}#rep{display:block;color:#000;font:12px/1.4 system-ui,Arial,sans-serif}body{background:#fff!important;padding:0!important;max-width:none!important}body::before{display:none!important}@page{margin:14mm}#rep h1{font-size:22px;margin:0}#rep h2{font-size:16px;margin:2px 0}#rep h3{font-size:14px;margin:14px 0 4px}#rep .rm{color:#555;margin:2px 0}#rep .rs{font-size:22px;margin:12px 0 2px}#rep .rw{font-size:14px;margin:0}#rep table{width:100%;border-collapse:collapse}#rep td,#rep th{border:1px solid #bbb;padding:4px 6px;text-align:left;vertical-align:top}#rep th{background:#eee}}
 </style>
 </head>
 <body>
@@ -64,6 +74,7 @@ label{font-size:14px;color:var(--mut)}
   <div class="row" style="margin-top:0">
     <button data-a="undo">↩ Undo</button>
     <button data-a="gate">⇄ Mode</button>
+    <button data-a="pdfcur">📄 PDF</button>
     <button data-a="chpw">⏋ Sign out</button>
     <button data-a="theme">◐ Theme</button>
     <button data-a="reset" style="color:var(--red)">Next match ▶</button>
@@ -78,6 +89,7 @@ label{font-size:14px;color:var(--mut)}
 </div>
 <div id="ask" class="modal" hidden></div>
 <div id="detail" class="modal" hidden></div>
+<div id="rep"></div>
 
 <script>
 var PN=['1st half','2nd half','Extra time 1','Extra time 2'];
@@ -92,7 +104,7 @@ function off(){return S.per==0?0:S.per==1?S.len*60:S.per==2?S.len*120:S.len*120+
 function fmt(s){s=Math.max(0,Math.floor(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
 function now(){return fmt(Math.ceil(plen()-S.el))}
 /* ====== SETTINGS: paste your Firebase values here (see SETUP-GUIDE) ====== */
-var FB_CONFIG={apiKey:"AIzaSyBWzq0TTsYLzBQLfwPm1XVWAVFekn4r4M4",authDomain:"handball-tournament-39801.firebaseapp.com",databaseURL:"https://handball-tournament-39801-default-rtdb.asia-southeast1.firebasedatabase.app/",projectId:"handball-tournament-39801",appId:"1:1094144094480:web:a1b5af68e8e01f85893595"};
+var FB_CONFIG={apiKey:"AIzaSyBWzq0TTsYLzBQLfwPm1XVWAVFekn4r4M4",authDomain:"handball-tournament-39801.firebaseapp.com",databaseURL:"https://handball-tournament-39801-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"handball-tournament-39801",appId:"1:1094144094480:web:a1b5af68e8e01f85893595"};
 var ADMIN_USER="admin"; /* the username you create in Firebase (without @handball.app) */
 /* ======================================================================= */
 var MODE=null,DB=null,AUTHU=null,VS=null,VR=0,UNSUB=null,VMSG='',INIT=false,PT=null;
@@ -105,13 +117,29 @@ async function gadmin(){init();if(!DB){showGate('Firebase is not set up yet. Che
 function enterAdmin(){MODE='admin';show('admin');loadSaved();render();push()}
 async function gview(){init();MODE='view';VS=null;VMSG='';show('viewer');renderView();if(!DB){VMSG='Live data is not set up yet.';renderView();return}
   setTimeout(function(){if(MODE=='view'&&!VS){VMSG='Waiting for the match to start…';renderView()}},10000);
-  var r=DB.ref('live/current');var cb=r.on('value',function(sn){var d=sn.val();if(d&&d.s){try{VS=JSON.parse(d.s);VR=Date.now();VMSG=''}catch(e){}}else{VMSG='No live match yet.'}renderView()},function(){VMSG='Could not load the live match.';renderView()});UNSUB=function(){r.off('value',cb)}}
+  var r=DB.ref('live/current');var cb=r.on('value',function(sn){var d=sn.val();if(d&&d.s){try{VS=JSON.parse(d.s);VR=Date.now();VMSG=''}catch(e){}}else{VMSG='No live match yet.'}renderView()},function(){VMSG='Could not load the live match.';renderView()});var r2=DB.ref('saved');var cb2=r2.on('value',function(sn){var v=sn.val();SVV=v?Object.keys(v).map(function(k){return v[k]}).sort(function(a,b){return b.ts-a.ts}):[];if(MODE=='view')renderView()},function(){});UNSUB=function(){r.off('value',cb);r2.off('value',cb2)}}
 function vpl(){return(VS.per<2?VS.len:5)*60}
 function vel(){return VS.run?Math.min(vpl(),VS.el+(Date.now()-VR)/1000):VS.el}
 function vchip(i,k){var x=VS.sp[i][k],q=VS.rs[i][x.p],v=x.v-(VS.run?(Date.now()-VR)/1000:0);return v>0?'2′ '+(q?(q.n||q.name)+' ':'')+fmt(v):''}
+function evs(x,k){return(x.ev||[]).filter(function(e){return e.k==k}).map(function(e){return e.t}).join(', ')||'-'}
+function repHtml(X){var s0=X.score[0],s1=X.score[1],win=s0>s1?X.names[0]:s1>s0?X.names[1]:null;
+  var dt=new Date(+X.mid||Date.now()).toLocaleString();
+  var h='<h1>Handball Match Report</h1><h2>'+esc(X.mname||(X.names[0]+' vs '+X.names[1]))+'</h2><p class="rm">'+esc(dt)+'</p>';
+  h+='<div class="rs">'+esc(X.names[0])+' <b>'+s0+' - '+s1+'</b> '+esc(X.names[1])+'</div><p class="rw">'+(win?'Winner: <b>'+esc(win)+'</b>':'Result: <b>Draw</b>')+'</p>';
+  [0,1].forEach(function(i){
+    var named=X.rs[i].reduce(function(a,x){return a+(x.g||0)},0),un=X.score[i]-named;
+    h+='<h3>'+esc(X.names[i])+' ('+X.score[i]+' goals)</h3><p class="rm">Yellow cards: '+X.cd[i].y+' | Red cards: '+X.cd[i].r+' | Timeouts: '+X.to[i]+'</p>';
+    h+='<table><tr><th>No.</th><th>Player</th><th>Goals (time)</th><th>Yellow</th><th>Red</th><th>2 min</th></tr>';
+    h+=X.rs[i].length?X.rs[i].map(function(x){return'<tr><td>'+esc(x.n||'-')+'</td><td>'+esc(x.name)+'</td><td>'+(x.g||0)+(x.g?' ('+evs(x,'g')+')':'')+'</td><td>'+evs(x,'y')+'</td><td>'+evs(x,'r')+'</td><td>'+evs(x,'s')+'</td></tr>'}).join(''):'<tr><td colspan="6">No players entered</td></tr>';
+    h+='</table>'+(un>0?'<p class="rm">Goals without a named scorer: '+un+'</p>':'')});
+  h+='<h3>Match log</h3><table>'+X.log.slice().reverse().map(function(l){return'<tr><td style="width:90px">'+esc(l.t)+'</td><td>'+esc(l.m)+'</td></tr>'}).join('')+'</table>';
+  return h}
+function printReport(X){document.getElementById('rep').innerHTML=repHtml(X);setTimeout(function(){window.print()},200)}
+function pastHtml(){return SVV.length?'<div class="card"><h3>Past matches ('+SVV.length+')</h3>'+SVV.map(function(z){var d=new Date(z.ts).toLocaleString([],{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});return'<div class="pr"><span><b>'+esc(z.name)+'</b><div class="st">'+esc(z.sc)+' \u00b7 '+d+'</div></span><span><button data-a="detm" data-k="'+z.id+'">Details</button></span></div>'}).join('')+'</div>':''}
+function hasAct(X){return X.log.length||X.rs[0].length||X.rs[1].length||X.score[0]||X.score[1]}
 function renderView(){var e=document.getElementById('viewer');
   var h='<div class="row" style="margin:0 0 10px;justify-content:space-between;align-items:center"><b>👁 Live view</b><button data-a="gate">⇄ Mode</button></div>';
-  if(!VS){e.innerHTML=h+'<div class="card meta">'+esc(VMSG||'Connecting…')+'</div>';return}
+  if(!VS){e.innerHTML=h+'<div class="card meta">'+esc(VMSG||'Connecting…')+'</div>'+pastHtml();return}
   var pln=vpl(),ended=!VS.run&&VS.el>=pln;
   h+='<div class="card clock'+(ended?' end':'')+'"><div class="per">'+PN[VS.per]+(ended?' · finished':VS.run?' · live':' · paused')+(VS.mname?' · '+esc(VS.mname):'')+'</div><div class="time" id="vtm">'+fmt(Math.ceil(pln-vel()))+'</div></div><div class="teams">';
   for(var i=0;i<2;i++){
@@ -121,6 +149,7 @@ function renderView(){var e=document.getElementById('viewer');
     h+=VS.rs[i].filter(function(x){return x.ev&&x.ev.length}).map(function(x){return'<div class="pr"><span><b>'+esc(x.n||'–')+'</b> '+esc(x.name)+evTxt(x)+'</span></div>'}).join('')+'</div>';
   }
   h+='</div><div class="card"><h3>Match log</h3><div class="log">'+(VS.log.length?VS.log.slice(0,40).map(function(l){return'<div><b>'+esc(l.t)+'</b>'+esc(l.m)+'</div>'}).join(''):'<div>No events yet.</div>')+'</div></div>';
+  h+=pastHtml();
   e.innerHTML=h}
 setInterval(function(){if(MODE!='view'||!VS)return;var x=document.getElementById('vtm');if(x)x.textContent=fmt(Math.ceil(vpl()-vel()));document.querySelectorAll('[data-vs]').forEach(function(c){var p=c.dataset.vs.split('-'),t=vchip(+p[0],+p[1]);c.textContent=t;c.style.display=t?'':'none'})},250);
 function val(id){var e=document.getElementById(id);return e?e.value:''}
@@ -131,12 +160,13 @@ document.addEventListener('keydown',function(ev){if(ev.key=='Enter'&&ev.target.d
 var ASKCB=null;
 function ask(msg,cb){ASKCB=cb;var e=document.getElementById('ask');e.innerHTML='<div class="box"><p style="margin:0 0 6px">'+esc(msg)+'</p><div class="row"><button class="pri" data-a="askyes">Yes</button><button data-a="askno">Cancel</button></div></div>';e.hidden=false}
 function saveCurrent(){if(!S.log.length&&!S.rs[0].length&&!S.rs[1].length&&!S.score[0]&&!S.score[1])return;var mn=(S.mname||'').trim()||(S.names[0]+' vs '+S.names[1]);S.mname=mn;if(!S.mid)S.mid=String(Date.now());var en={id:S.mid,name:mn,ts:Date.now(),sc:S.names[0]+' '+S.score[0]+'–'+S.score[1]+' '+S.names[1],data:JSON.stringify(S)};var ix=SV.findIndex(function(z){return z.id==S.mid});if(ix>=0)SV[ix]=en;else SV.unshift(en);saveSV()}
-function detHtml(X){var h='<div class="row" style="margin:0 0 8px;justify-content:space-between;align-items:center"><b>'+esc(X.mname||'Match')+'</b><button data-a="detclose">Close</button></div><div class="meta" style="margin:0 0 8px">'+PN[X.per]+'</div>';
+function detHtml(X){var h='<div class="row" style="margin:0 0 8px;justify-content:space-between;align-items:center"><b>'+esc(X.mname||'Match')+'</b><span><button data-a="pdf" data-k="'+esc(X.mid||'')+'">📄 PDF report</button> <button data-a="detclose">Close</button></span></div><div class="meta" style="margin:0 0 8px">'+PN[X.per]+'</div>';
   h+='<div class="teams" style="gap:8px">'+[0,1].map(function(i){return'<div class="card" style="margin:0"><div style="text-align:center;font-weight:600">'+esc(X.names[i])+'</div><div class="score" style="font-size:52px">'+X.score[i]+'</div><div class="meta">Timeouts '+X.to[i]+' · <span class="y"></span> '+X.cd[i].y+' · <span class="r"></span> '+X.cd[i].r+'</div></div>'}).join('')+'</div>';
   [0,1].forEach(function(i){h+='<h3 style="margin-top:12px">'+esc(X.names[i])+' · players</h3>'+(X.rs[i].length?X.rs[i].map(function(x){return'<div class="pr"><span><b>'+esc(x.n||'–')+'</b> '+esc(x.name)+evTxt(x)+'</span><span class="st">'+(x.g||0)+' goals</span></div>'}).join(''):'<div class="meta">No players</div>')});
   h+='<h3 style="margin-top:12px">Match log</h3><div class="log" style="max-height:none">'+(X.log.length?X.log.map(function(l){return'<div><b>'+esc(l.t)+'</b>'+esc(l.m)+'</div>'}).join(''):'<div>No events.</div>')+'</div>';return h}
 var PS=['1H','2H','E1','E2'];var PTIME=null;var PTUP=null;function nowUp(){return fmt(off()+S.el)}
-var SV=[];try{SV=JSON.parse(localStorage.getItem('handball-saved-v1')||'[]')}catch(e){}
+var SV=[],SVV=[];function findSaved(id){return SV.find(function(z){return z.id==id})||SVV.find(function(z){return z.id==id})}
+try{SV=JSON.parse(localStorage.getItem('handball-saved-v1')||'[]')}catch(e){}
 function saveSV(){try{localStorage.setItem('handball-saved-v1',JSON.stringify(SV))}catch(e){}if(DB&&AUTHU){var o={};SV.forEach(function(z){o[z.id]=z});DB.ref('saved').set(o).catch(function(){})}}
 function loadSaved(){if(!DB||!AUTHU)return;DB.ref('saved').once('value').then(function(s){var v=s.val();if(v){SV=Object.keys(v).map(function(k){return v[k]}).sort(function(a,b){return b.ts-a.ts});try{localStorage.setItem('handball-saved-v1',JSON.stringify(SV))}catch(e){}renderSaved()}}).catch(function(){})}
 function renderSaved(){var e=document.getElementById('matches');if(!e)return;
@@ -205,9 +235,11 @@ function handle(b,p){
   if(a=='cancelpick'){PEND=null;PTIME=null;PTUP=null;closePick();return}
   if(a=='gate'){showGate();return}
   if(a=='askyes'||a=='askno'){var cb=a=='askyes'?ASKCB:null;ASKCB=null;var ae=document.getElementById('ask');ae.hidden=true;ae.innerHTML='';if(cb)cb();return}
-  if(a=='detm'){var z1=SV.find(function(z){return z.id==b.dataset.k});if(z1){var de=document.getElementById('detail');de.innerHTML='<div class="box">'+detHtml(JSON.parse(z1.data))+'</div>';de.hidden=false}return}
+  if(a=='pdf'){var zp=findSaved(b.dataset.k);if(zp)printReport(JSON.parse(zp.data));return}
+  if(a=='pdfcur'){printReport(S);return}
+  if(a=='detm'){var z1=findSaved(b.dataset.k);if(z1){var de=document.getElementById('detail');de.innerHTML='<div class="box">'+detHtml(JSON.parse(z1.data))+'</div>';de.hidden=false}return}
   if(a=='detclose'){var dc=document.getElementById('detail');dc.hidden=true;dc.innerHTML='';return}
-  if(a=='reset'){ask('Save this match and start the next one? The old match stays in Saved matches.',function(){saveCurrent();snap();S=Object.assign(fresh(),{len:S.len,maxto:S.maxto});save();render();window.scrollTo(0,0)});return}
+  if(a=='reset'){ask('Save this match, create its PDF report and start the next one?',function(){saveCurrent();var done=JSON.parse(JSON.stringify(S));snap();S=Object.assign(fresh(),{len:S.len,maxto:S.maxto});save();render();window.scrollTo(0,0);if(hasAct(done))printReport(done)});return}
   if(a=='gview'){gview();return}
   if(a=='gadmin'){gadmin();return}
   if(a=='dologin'){dologin();return}
