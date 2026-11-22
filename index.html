@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Handball Match Control</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--tx:#14181f;--mut:#667085;--ac:#1d6fe8;--bd:#d9dde3;--red:#d92d20;--yel:#eab308;--grn:#12a150;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1218;--card:#1a1f29;--tx:#eef1f6;--mut:#9aa3b2;--bd:#2c3340;--ac:#5b9bff}}
+:root[data-theme="dark"]{--bg:#0f1218;--card:#1a1f29;--tx:#eef1f6;--mut:#9aa3b2;--bd:#2c3340;--ac:#5b9bff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:12px;max-width:760px;margin:auto}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px;margin-bottom:12px}
+.clock{text-align:center}
+.time{font-size:64px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.per{color:var(--mut);margin-bottom:6px}
+.row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+button,select,input{font:inherit;color:var(--tx)}
+button{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;cursor:pointer;min-height:44px}
+button:active{transform:scale(.97)}
+.pri{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600;min-width:120px}
+.grn{background:var(--grn);border-color:var(--grn);color:#fff;font-weight:600;min-width:120px}
+.teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.team input{width:100%;text-align:center;font-weight:600;border:1px solid var(--bd);background:transparent;border-radius:8px;padding:8px}
+.score{font-size:76px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;line-height:1.1}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.g .big{grid-column:span 2;background:var(--ac);color:#fff;border-color:var(--ac);font-weight:700;font-size:18px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;min-height:30px}
+.chip{background:var(--red);color:#fff;border-radius:999px;padding:4px 10px;font-size:14px;font-variant-numeric:tabular-nums;cursor:pointer;border:0;min-height:0}
+.meta{color:var(--mut);font-size:14px;margin-top:8px;text-align:center}
+.y{display:inline-block;width:10px;height:14px;background:var(--yel);border-radius:2px;vertical-align:-2px}
+.r{display:inline-block;width:10px;height:14px;background:var(--red);border-radius:2px;vertical-align:-2px}
+.log{max-height:220px;overflow-y:auto;font-size:14px}
+.log div{padding:5px 0;border-bottom:1px solid var(--bd)}
+.log b{font-variant-numeric:tabular-nums;color:var(--mut);margin-right:8px}
+h3{margin:0 0 6px;font-size:15px;color:var(--mut)}
+label{font-size:14px;color:var(--mut)}
+.set input{width:64px;padding:8px;border:1px solid var(--bd);border-radius:8px;background:transparent}
+.end .time{color:var(--red)}
+.fld{width:100%;padding:11px;border:1px solid var(--bd);background:transparent;border-radius:8px;margin-top:8px}
+[hidden]{display:none!important}
+#gate .row button{font-size:17px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;z-index:20}.modal[hidden]{display:none}
+.box{background:var(--card);width:100%;max-width:760px;border-radius:16px 16px 0 0;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px));max-height:80vh;overflow:auto}
+.pl{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ros{margin-top:10px;font-size:14px}.ros summary{cursor:pointer;color:var(--mut);padding:6px 0}
+.pr{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--bd)}
+.st{color:var(--mut);font-size:12px}.x{min-height:0;padding:2px 8px}
+.add{display:flex;gap:6px;margin-top:8px}.add input{flex:1;min-width:0;border:1px solid var(--bd);background:transparent;border-radius:8px;padding:8px}
+</style>
+</head>
+<body>
+<div id="gate" hidden></div>
+<div id="viewer" hidden></div>
+<div id="admin" hidden>
+<div class="card clock" id="clock"></div>
+<div class="teams" id="teams"></div>
+<div class="card" id="matches" style="margin-top:12px"></div>
+<div class="card" style="margin-top:12px">
+  <div class="row" style="margin-top:0">
+    <button data-a="undo">↩ Undo</button>
+    <button data-a="gate">⇄ Mode</button>
+    <button data-a="chpw">⏋ Sign out</button>
+    <button data-a="theme">◐ Theme</button>
+    <button data-a="reset" style="color:var(--red)">Next match ▶</button>
+  </div>
+  <div class="row set">
+    <label>Half length (min) <input id="len" type="number" min="1" max="60" inputmode="numeric"></label>
+    <label>Max timeouts <input id="maxto" type="number" min="1" max="5" inputmode="numeric"></label>
+  </div>
+</div>
+<div class="card"><h3>Match log</h3><div class="log" id="log"></div></div>
+<div id="pick" class="modal" hidden></div>
+</div>
+<div id="ask" class="modal" hidden></div>
+<div id="detail" class="modal" hidden></div>
+
+<script>
+var PN=['1st half','2nd half','Extra time 1','Extra time 2'];
+var KEY='handball-match-v1';
+function fresh(){return{names:['Home','Away'],mname:'',mid:'',rs:[[],[]],score:[0,0],per:0,len:30,maxto:3,el:0,run:false,to:[0,0],sp:[[],[]],cd:[{y:0,r:0},{y:0,r:0}],log:[]}}
+var S=fresh(),H=[],last=0,thm=null;
+try{var raw=localStorage.getItem(KEY);if(raw){S=Object.assign(fresh(),JSON.parse(raw));S.run=false;S.sp=S.sp.map(function(a){return a.map(function(x){return typeof x=='number'?{v:x,p:-1}:x})})}}catch(e){}
+function saveL(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){saveL();push()}
+function plen(){return(S.per<2?S.len:5)*60}
+function off(){return S.per==0?0:S.per==1?S.len*60:S.per==2?S.len*120:S.len*120+300}
+function fmt(s){s=Math.max(0,Math.floor(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+function now(){return fmt(Math.ceil(plen()-S.el))}
+/* ====== SETTINGS: paste your Firebase values here (see SETUP-GUIDE) ====== */
+var FB_CONFIG={apiKey:"AIzaSyBWzq0TTsYLzBQLfwPm1XVWAVFekn4r4M4",authDomain:"handball-tournament-39801.firebaseapp.com",databaseURL:"https://handball-tournament-39801-default-rtdb.asia-southeast1.firebasedatabase.app/",projectId:"handball-tournament-39801",appId:"1:1094144094480:web:a1b5af68e8e01f85893595"};
+var ADMIN_USER="admin"; /* the username you create in Firebase (without @handball.app) */
+/* ======================================================================= */
+var MODE=null,DB=null,AUTHU=null,VS=null,VR=0,UNSUB=null,VMSG='',INIT=false,PT=null;
+function init(){if(INIT)return;INIT=true;try{firebase.initializeApp(FB_CONFIG);DB=firebase.database();firebase.auth().onAuthStateChanged(function(u){AUTHU=u})}catch(e){DB=null}}
+function push(){if(MODE!='admin'||!DB)return;clearTimeout(PT);PT=setTimeout(function(){try{DB.ref('live/current').set({s:JSON.stringify(S),at:Date.now()}).catch(function(){})}catch(e){}},400)}
+function show(id){['gate','viewer','admin'].forEach(function(k){document.getElementById(k).hidden=(k!=id)})}
+function renderGate(msg){document.getElementById('gate').innerHTML='<div class="card" style="text-align:center;margin-top:20px"><h2 style="margin:4px 0 14px">🤾 Handball Match</h2><div class="row" style="flex-direction:column;align-items:stretch"><button class="pri" data-a="gview">👁 Viewer · watch live</button><button data-a="gadmin">🔐 Admin login · control match</button></div>'+(msg?'<p class="meta" style="color:var(--red)">'+msg+'</p>':'')+'<p class="meta">Admins score the game and run the clock. Viewers see the match live, read-only.</p></div>'}
+function showGate(msg){if(UNSUB){UNSUB();UNSUB=null}MODE=null;show('gate');renderGate(msg)}
+async function gadmin(){init();if(!DB){showGate('Firebase is not set up yet. Check the settings at the top of the file.');return}if(AUTHU&&AUTHU.email==ADMIN_USER+'@handball.app'){enterAdmin();return}renderLogin()}
+function enterAdmin(){MODE='admin';show('admin');loadSaved();render();push()}
+async function gview(){init();MODE='view';VS=null;VMSG='';show('viewer');renderView();if(!DB){VMSG='Live data is not set up yet.';renderView();return}
+  setTimeout(function(){if(MODE=='view'&&!VS){VMSG='Waiting for the match to start…';renderView()}},10000);
+  var r=DB.ref('live/current');var cb=r.on('value',function(sn){var d=sn.val();if(d&&d.s){try{VS=JSON.parse(d.s);VR=Date.now();VMSG=''}catch(e){}}else{VMSG='No live match yet.'}renderView()},function(){VMSG='Could not load the live match.';renderView()});UNSUB=function(){r.off('value',cb)}}
+function vpl(){return(VS.per<2?VS.len:5)*60}
+function vel(){return VS.run?Math.min(vpl(),VS.el+(Date.now()-VR)/1000):VS.el}
+function vchip(i,k){var x=VS.sp[i][k],q=VS.rs[i][x.p],v=x.v-(VS.run?(Date.now()-VR)/1000:0);return v>0?'2′ '+(q?(q.n||q.name)+' ':'')+fmt(v):''}
+function renderView(){var e=document.getElementById('viewer');
+  var h='<div class="row" style="margin:0 0 10px;justify-content:space-between;align-items:center"><b>👁 Live view</b><button data-a="gate">⇄ Mode</button></div>';
+  if(!VS){e.innerHTML=h+'<div class="card meta">'+esc(VMSG||'Connecting…')+'</div>';return}
+  var pln=vpl(),ended=!VS.run&&VS.el>=pln;
+  h+='<div class="card clock'+(ended?' end':'')+'"><div class="per">'+PN[VS.per]+(ended?' · finished':VS.run?' · live':' · paused')+(VS.mname?' · '+esc(VS.mname):'')+'</div><div class="time" id="vtm">'+fmt(Math.ceil(pln-vel()))+'</div></div><div class="teams">';
+  for(var i=0;i<2;i++){
+    h+='<div class="card team"><div style="text-align:center;font-weight:600">'+esc(VS.names[i])+'</div><div class="score">'+VS.score[i]+'</div>';
+    h+='<div class="chips">'+VS.sp[i].map(function(x,k){return'<span class="chip" data-vs="'+i+'-'+k+'">'+vchip(i,k)+'</span>'}).join('')+'</div>';
+    h+='<div class="meta">Timeouts '+VS.to[i]+'/'+VS.maxto+' · <span class="y"></span> '+VS.cd[i].y+' · <span class="r"></span> '+VS.cd[i].r+'</div>';
+    h+=VS.rs[i].filter(function(x){return x.ev&&x.ev.length}).map(function(x){return'<div class="pr"><span><b>'+esc(x.n||'–')+'</b> '+esc(x.name)+evTxt(x)+'</span></div>'}).join('')+'</div>';
+  }
+  h+='</div><div class="card"><h3>Match log</h3><div class="log">'+(VS.log.length?VS.log.slice(0,40).map(function(l){return'<div><b>'+esc(l.t)+'</b>'+esc(l.m)+'</div>'}).join(''):'<div>No events yet.</div>')+'</div></div>';
+  e.innerHTML=h}
+setInterval(function(){if(MODE!='view'||!VS)return;var x=document.getElementById('vtm');if(x)x.textContent=fmt(Math.ceil(vpl()-vel()));document.querySelectorAll('[data-vs]').forEach(function(c){var p=c.dataset.vs.split('-'),t=vchip(+p[0],+p[1]);c.textContent=t;c.style.display=t?'':'none'})},250);
+function val(id){var e=document.getElementById(id);return e?e.value:''}
+function renderLogin(msg){show('gate');document.getElementById('gate').innerHTML='<div class="card" style="margin-top:20px"><h2 style="margin:4px 0 8px;text-align:center">\ud83d\udd10 Admin login</h2><input class="fld" id="lu" data-login="1" placeholder="Username" autocomplete="username" autocapitalize="none"><input class="fld" id="lp" data-login="1" type="password" placeholder="Password" autocomplete="current-password">'+(msg?'<p class="meta" style="color:var(--red)">'+esc(msg)+'</p>':'')+'<div class="row"><button class="pri" data-a="dologin">Log in</button><button data-a="gate">Back</button></div></div>'}
+async function dologin(){var u=val('lu').trim().toLowerCase(),p=val('lp');if(!u||!p){renderLogin('Enter username and password.');return}try{var c=await firebase.auth().signInWithEmailAndPassword(u+'@handball.app',p);if(c.user.email!=ADMIN_USER+'@handball.app'){await firebase.auth().signOut();renderLogin('This account is not the admin.');return}AUTHU=c.user;enterAdmin()}catch(e){renderLogin('Wrong username or password.')}}
+function dosetup(){}function dochange(){}function resetlogin(){}
+document.addEventListener('keydown',function(ev){if(ev.key=='Enter'&&ev.target.dataset&&ev.target.dataset.login!=null){var bb=document.querySelector('#gate button[data-a=dologin],#gate button[data-a=dosetup],#gate button[data-a=dochange]');if(bb)bb.click()}});
+var ASKCB=null;
+function ask(msg,cb){ASKCB=cb;var e=document.getElementById('ask');e.innerHTML='<div class="box"><p style="margin:0 0 6px">'+esc(msg)+'</p><div class="row"><button class="pri" data-a="askyes">Yes</button><button data-a="askno">Cancel</button></div></div>';e.hidden=false}
+function saveCurrent(){if(!S.log.length&&!S.rs[0].length&&!S.rs[1].length&&!S.score[0]&&!S.score[1])return;var mn=(S.mname||'').trim()||(S.names[0]+' vs '+S.names[1]);S.mname=mn;if(!S.mid)S.mid=String(Date.now());var en={id:S.mid,name:mn,ts:Date.now(),sc:S.names[0]+' '+S.score[0]+'–'+S.score[1]+' '+S.names[1],data:JSON.stringify(S)};var ix=SV.findIndex(function(z){return z.id==S.mid});if(ix>=0)SV[ix]=en;else SV.unshift(en);saveSV()}
+function detHtml(X){var h='<div class="row" style="margin:0 0 8px;justify-content:space-between;align-items:center"><b>'+esc(X.mname||'Match')+'</b><button data-a="detclose">Close</button></div><div class="meta" style="margin:0 0 8px">'+PN[X.per]+'</div>';
+  h+='<div class="teams" style="gap:8px">'+[0,1].map(function(i){return'<div class="card" style="margin:0"><div style="text-align:center;font-weight:600">'+esc(X.names[i])+'</div><div class="score" style="font-size:52px">'+X.score[i]+'</div><div class="meta">Timeouts '+X.to[i]+' · <span class="y"></span> '+X.cd[i].y+' · <span class="r"></span> '+X.cd[i].r+'</div></div>'}).join('')+'</div>';
+  [0,1].forEach(function(i){h+='<h3 style="margin-top:12px">'+esc(X.names[i])+' · players</h3>'+(X.rs[i].length?X.rs[i].map(function(x){return'<div class="pr"><span><b>'+esc(x.n||'–')+'</b> '+esc(x.name)+evTxt(x)+'</span><span class="st">'+(x.g||0)+' goals</span></div>'}).join(''):'<div class="meta">No players</div>')});
+  h+='<h3 style="margin-top:12px">Match log</h3><div class="log" style="max-height:none">'+(X.log.length?X.log.map(function(l){return'<div><b>'+esc(l.t)+'</b>'+esc(l.m)+'</div>'}).join(''):'<div>No events.</div>')+'</div>';return h}
+var PS=['1H','2H','E1','E2'];var PTIME=null;var PTUP=null;function nowUp(){return fmt(off()+S.el)}
+var SV=[];try{SV=JSON.parse(localStorage.getItem('handball-saved-v1')||'[]')}catch(e){}
+function saveSV(){try{localStorage.setItem('handball-saved-v1',JSON.stringify(SV))}catch(e){}if(DB&&AUTHU){var o={};SV.forEach(function(z){o[z.id]=z});DB.ref('saved').set(o).catch(function(){})}}
+function loadSaved(){if(!DB||!AUTHU)return;DB.ref('saved').once('value').then(function(s){var v=s.val();if(v){SV=Object.keys(v).map(function(k){return v[k]}).sort(function(a,b){return b.ts-a.ts});try{localStorage.setItem('handball-saved-v1',JSON.stringify(SV))}catch(e){}renderSaved()}}).catch(function(){})}
+function renderSaved(){var e=document.getElementById('matches');if(!e)return;
+  var h='<h3>Match</h3><div class="add" style="margin-top:0"><input id="mname" placeholder="Match name, e.g. Semi-final" value="'+esc(S.mname||'')+'" aria-label="Match name"><button class="pri" data-a="savem" style="min-width:0">'+(S.mid?'Update save':'Save')+'</button></div>';
+  h+=SV.length?'<h3 style="margin-top:12px">Saved matches ('+SV.length+')</h3>'+SV.map(function(z){var d=new Date(z.ts).toLocaleString([],{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});return'<div class="pr"><span><b>'+esc(z.name)+(z.id==S.mid?' \u25cf':'')+'</b><div class="st">'+esc(z.sc)+' \u00b7 '+d+'</div></span><span><button data-a="detm" data-k="'+z.id+'">Details</button> <button data-a="loadm" data-k="'+z.id+'">Continue</button> <button class="x" data-a="delm" data-k="'+z.id+'" aria-label="Delete saved match">\u2715</button></span></div>'}).join(''):'<div class="meta">No saved matches yet.</div>';
+  e.innerHTML=h}
+function add(t,up){S.log.unshift({t:up?(PTUP||nowUp()):(PTIME||PS[S.per]+' '+now()),m:t})}
+function snap(){H.push(JSON.stringify(S));if(H.length>60)H.shift()}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+function tick(){
+  if(!S.run){return}
+  var n=Date.now(),d=(n-last)/1000;last=n;
+  S.el+=d;
+  for(var t=0;t<2;t++){S.sp[t]=S.sp[t].map(function(x){return{v:x.v-d,p:x.p}}).filter(function(x){return x.v>0})}
+  if(S.el>=plen()){S.el=plen();S.run=false;add('End of '+PN[S.per]+' ('+S.score[0]+'–'+S.score[1]+')');try{navigator.vibrate&&navigator.vibrate([400,150,400])}catch(e){}save();render();return}
+  paintClock();paintSusp();
+}
+setInterval(tick,250);
+setInterval(function(){if(S.run)saveL()},5000);
+
+function paintClock(){var e=document.getElementById('tm');if(e)e.textContent=now()}
+function paintSusp(){document.querySelectorAll('[data-sp]').forEach(function(c){var p=c.dataset.sp.split('-');var x=S.sp[p[0]][p[1]];if(x)c.textContent=chipTxt(+p[0],+p[1])})}
+
+var PICKA=['goal','ungoal','susp','y','r'],PEND=null,OP=[false,false];
+var AL={goal:'Goal scored by',ungoal:'Remove goal from',susp:'2-min suspension for',y:'Yellow card for',r:'Red card for'};
+function plab(t,p){var x=S.rs[t][p];return x?(x.n?'#'+x.n+' ':'')+x.name:''}
+function pl(t,p){return p>=0&&S.rs[t][p]?' – '+plab(t,p):''}
+function pst(t,p,k,d){var x=S.rs[t][p];if(!x)return;x[k]=Math.max(0,(x[k]||0)+d);x.ev=x.ev||[];if(d>0)x.ev.push({k:k,t:PTUP||nowUp()});else{for(var i=x.ev.length-1;i>=0;i--)if(x.ev[i].k==k){x.ev.splice(i,1);break}}}
+function evTxt(x){var m={g:'⚽',y:'🟨',s:'2′',r:'🟥'};return(x.ev&&x.ev.length)?'<div class="st">'+x.ev.map(function(e){return m[e.k]+' '+e.t}).join(' · ')+'</div>':''}
+function chipTxt(t,k){var x=S.sp[t][k],q=S.rs[t][x.p];return'2′ '+(q?(q.n||q.name)+' ':'')+fmt(x.v)}
+function openPick(a,t){var e=document.getElementById('pick');e.innerHTML='<div class="box"><h3>'+AL[a]+' · '+esc(S.names[t])+'</h3><div class="pl">'+S.rs[t].map(function(x,k){return'<button data-a="pick" data-p="'+k+'">'+(x.n?'<b>'+esc(x.n)+'</b> ':'')+esc(x.name)+'</button>'}).join('')+'</div><div class="row"><button data-a="pick" data-p="-1">No player</button><button data-a="cancelpick">Cancel</button></div></div>';e.hidden=false}
+function closePick(){var e=document.getElementById('pick');e.hidden=true;e.innerHTML=''}
+function rosterHtml(i){var r=S.rs[i];
+  var h='<details class="ros"'+(OP[i]?' open':'')+' ontoggle="OP['+i+']=this.open"><summary>Players ('+r.length+')</summary>';
+  h+=r.map(function(x,k){return'<div class="pr"><span><b>'+esc(x.n||'–')+'</b> '+esc(x.name)+evTxt(x)+'</span><span class="st">'+(x.g||0)+' goals'+(x.s?' · '+x.s+'×2′':'')+(x.y?' · <span class="y"></span>':'')+(x.r?' · <span class="r"></span>':'')+'</span><button class="x" data-a="rmp" data-t="'+i+'" data-k="'+k+'" aria-label="Remove player">✕</button></div>'}).join('');
+  h+='<div class="add"><input data-add="'+i+'" id="pn'+i+'" placeholder="No." inputmode="numeric" maxlength="3" style="flex:0 0 64px" aria-label="Player number"><input data-add="'+i+'" id="pm'+i+'" placeholder="Player name" aria-label="Player name"><button data-a="addp" data-t="'+i+'">Add</button></div></details>';
+  return h}
+function render(){
+  var ended=!S.run&&S.el>=plen();
+  var h='<div class="per">'+PN[S.per]+' · '+S.len+(S.per<2?' min':'')+(S.per>=2?' · 5 min':'')+'</div>';
+  h+='<div class="time" id="tm">'+now()+'</div><div class="row">';
+  h+='<button class="'+(S.run?'':'grn')+'" data-a="run" style="'+(S.run?'':'')+'">'+(S.run?'⏸ Pause':ended?'Period over':'▶ Start')+'</button>';
+  h+='<button data-a="prev"'+(S.per==0?' disabled':'')+'>◀ Prev period</button>';
+  h+='<button class="pri" data-a="next"'+(S.per==3?' disabled':'')+'>Next period ▶</button></div>';
+  h+='<div class="row"><button data-a="adj" data-v="-1">−1 s</button><button data-a="adj" data-v="1">+1 s</button><button data-a="adj" data-v="-10">−10 s</button><button data-a="adj" data-v="10">+10 s</button></div>';
+  var c=document.getElementById('clock');c.innerHTML=h;c.className='card clock'+(ended?' end':'');
+  var t='';
+  for(var i=0;i<2;i++){
+    t+='<div class="card team"><input data-n="'+i+'" value="'+esc(S.names[i])+'" aria-label="Team name">';
+    t+='<div class="score">'+S.score[i]+'</div><div class="g"><button class="big" data-a="goal" data-t="'+i+'">+ Goal</button>';
+    t+='<button data-a="ungoal" data-t="'+i+'">− Goal</button><button data-a="susp" data-t="'+i+'">2′ Suspension</button>';
+    t+='<button data-a="to" data-t="'+i+'">Timeout</button><button data-a="y" data-t="'+i+'"><span class="y"></span> Yellow</button>';
+    t+='<button data-a="r" data-t="'+i+'" style="grid-column:span 2"><span class="r"></span> Red card</button></div>';
+    t+='<div class="chips">'+S.sp[i].map(function(x,k){return'<button class="chip" data-a="rmsusp" data-t="'+i+'" data-k="'+k+'" data-sp="'+i+'-'+k+'">'+chipTxt(i,k)+'</button>'}).join('')+'</div>';
+    t+='<div class="meta">Timeouts '+S.to[i]+'/'+S.maxto+' · <span class="y"></span> '+S.cd[i].y+' · <span class="r"></span> '+S.cd[i].r+'</div>'+rosterHtml(i)+'</div>';
+  }
+  document.getElementById('teams').innerHTML=t;
+  document.getElementById('log').innerHTML=S.log.length?S.log.map(function(l){return'<div><b>'+l.t+'</b>'+esc(l.m)+'</div>'}).join(''):'<div>No events yet.</div>';
+  document.getElementById('len').value=S.len;document.getElementById('maxto').value=S.maxto;renderSaved();
+}
+
+document.addEventListener('click',function(ev){var b=ev.target.closest('button');if(!b||!b.dataset.a)return;handle(b)});
+function handle(b,p){
+  var a=b.dataset.a,t=+b.dataset.t,nm=S.names[t];
+  if(a=='cancelpick'){PEND=null;PTIME=null;PTUP=null;closePick();return}
+  if(a=='gate'){showGate();return}
+  if(a=='askyes'||a=='askno'){var cb=a=='askyes'?ASKCB:null;ASKCB=null;var ae=document.getElementById('ask');ae.hidden=true;ae.innerHTML='';if(cb)cb();return}
+  if(a=='detm'){var z1=SV.find(function(z){return z.id==b.dataset.k});if(z1){var de=document.getElementById('detail');de.innerHTML='<div class="box">'+detHtml(JSON.parse(z1.data))+'</div>';de.hidden=false}return}
+  if(a=='detclose'){var dc=document.getElementById('detail');dc.hidden=true;dc.innerHTML='';return}
+  if(a=='reset'){ask('Save this match and start the next one? The old match stays in Saved matches.',function(){saveCurrent();snap();S=Object.assign(fresh(),{len:S.len,maxto:S.maxto});save();render();window.scrollTo(0,0)});return}
+  if(a=='gview'){gview();return}
+  if(a=='gadmin'){gadmin();return}
+  if(a=='dologin'){dologin();return}
+  if(a=='dosetup'){dosetup();return}
+  if(a=='resetlogin'){resetlogin();return}
+  if(a=='chpw'){try{firebase.auth().signOut()}catch(e){}AUTHU=null;showGate();return}
+  if(a=='dochange'){dochange();return}
+  if(a=='savem'){var mn=(S.mname||'').trim()||(S.names[0]+' vs '+S.names[1]);S.mname=mn;if(!S.mid)S.mid=String(Date.now());var en={id:S.mid,name:mn,ts:Date.now(),sc:S.names[0]+' '+S.score[0]+'–'+S.score[1]+' '+S.names[1],data:JSON.stringify(S)};var ix=SV.findIndex(function(z){return z.id==S.mid});if(ix>=0)SV[ix]=en;else SV.unshift(en);saveSV();save();render();return}
+  if(a=='loadm'){var e1=SV.find(function(z){return z.id==b.dataset.k});if(e1){ask('Continue this match? The current match will be saved first.',function(){saveCurrent();snap();S=Object.assign(fresh(),JSON.parse(e1.data));S.run=false;S.mid=e1.id;save();render();window.scrollTo(0,0)})}return}
+  if(a=='delm'){var dk=b.dataset.k;ask('Delete this saved match?',function(){SV=SV.filter(function(z){return z.id!=dk});saveSV();render()});return}
+  if(a=='pick'){var pb=PEND;PEND=null;closePick();if(pb)handle(pb,+b.dataset.p);PTIME=null;PTUP=null;return}
+  if(a=='addp'){var nn=document.getElementById('pn'+t).value.trim(),w=document.getElementById('pm'+t).value.trim();if(!nn&&!w)return;S.rs[t].push({n:nn,name:w||('Player '+nn),g:0,y:0,r:0,s:0,ev:[]});S.rs[t].sort(function(a,b){return(a.n===''?999:+a.n)-(b.n===''?999:+b.n)});OP[t]=true;save();render();var f=document.getElementById('pn'+t);if(f)f.focus();return}
+  if(a=='addp'){var inp=document.getElementById('pm'+t);inp.value.split(/[,;\n]+/).forEach(function(s){s=s.trim();if(!s)return;var m=s.match(/^(\d{1,3})[\s.\-#]*(.*)$/);var n=m?m[1]:'',w=m?m[2].trim():s;S.rs[t].push({n:n,name:w||('Player '+n),g:0,y:0,r:0,s:0})});S.rs[t].sort(function(a,b){return(a.n===''?999:+a.n)-(b.n===''?999:+b.n)});OP[t]=true;save();render();return}
+  if(a=='rmp'){var rk=+b.dataset.k,rt=t;ask('Remove this player?',function(){S.rs[rt].splice(rk,1);save();render()});return}
+  if(PICKA.indexOf(a)>=0){if(p===undefined&&S.rs[t].length){PEND=b;PTIME=PS[S.per]+' '+now();PTUP=nowUp();openPick(a,t);return}if(p===undefined)p=-1}
+  if(a=='theme'){var r=document.documentElement;var dark=r.dataset.theme?r.dataset.theme=='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=dark?'light':'dark';return}
+  if(a=='undo'){if(H.length){S=JSON.parse(H.pop());S.run=false;save();render()}return}
+  if(a=='reset'){if(confirm('Start a new match? This clears score, clock and log.')){snap();S=Object.assign(fresh(),{len:S.len,maxto:S.maxto,names:S.names,rs:S.rs.map(function(r){return r.map(function(x){return{n:x.n,name:x.name,g:0,y:0,r:0,s:0}})})});save();render()}return}
+  snap();
+  if(a=='run'){if(S.el>=plen()&&!S.run){H.pop();return}S.run=!S.run;last=Date.now();add(S.run?'Clock started':'Clock paused')}
+  else if(a=='next'){S.per++;S.el=0;S.run=false;S.sp=[[],[]];add('Start of '+PN[S.per]+' (ready)')}
+  else if(a=='prev'){S.per--;S.el=0;S.run=false;add('Back to '+PN[S.per])}
+  else if(a=='adj'){S.el=Math.min(plen(),Math.max(0,S.el-(+b.dataset.v)));add('Clock adjusted '+b.dataset.v+' s')}
+  else if(a=='goal'){S.score[t]++;pst(t,p,'g',1);add('GOAL '+nm+pl(t,p)+' ('+S.score[0]+'–'+S.score[1]+')',1)}
+  else if(a=='ungoal'){if(S.score[t]>0){S.score[t]--;pst(t,p,'g',-1);add('Goal removed '+nm+pl(t,p)+' ('+S.score[0]+'–'+S.score[1]+')',1)}else H.pop()}
+  else if(a=='susp'){S.sp[t].push({v:120,p:p});pst(t,p,'s',1);add('2-min suspension '+nm+pl(t,p),1)}
+  else if(a=='rmsusp'){S.sp[t].splice(+b.dataset.k,1);add('Suspension cleared '+nm)}
+  else if(a=='to'){S.to[t]++;S.run=false;add('Team timeout '+nm+' ('+S.to[t]+'/'+S.maxto+')')}
+  else if(a=='y'){S.cd[t].y++;pst(t,p,'y',1);add('Yellow card '+nm+pl(t,p),1)}
+  else if(a=='r'){S.cd[t].r++;pst(t,p,'r',1);add('Red card '+nm+pl(t,p),1)}
+  save();render();
+}
+document.addEventListener('input',function(ev){
+  var e=ev.target;
+  if(e.dataset.n!=null){S.names[+e.dataset.n]=e.value;save()}
+  else if(e.id=='mname'){S.mname=e.value;save()}else if(e.id=='len'){var v=Math.max(1,Math.min(60,+e.value||30));S.len=v;save();paintClock()}
+  else if(e.id=='maxto'){S.maxto=Math.max(1,Math.min(5,+e.value||3));save()}
+});
+document.addEventListener('change',function(ev){if(ev.target.id=='len'||ev.target.id=='maxto')render()});
+document.addEventListener('keydown',function(ev){if(ev.key=='Enter'&&ev.target.dataset&&ev.target.dataset.add!=null){var bb=document.querySelector('button[data-a=addp][data-t="'+ev.target.dataset.add+'"]');if(bb)bb.click()}});
+render();init();showGate();
+</script>
+</body>
+</html>
