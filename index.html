@@ -673,7 +673,7 @@ function handle(b,p){
   if(a=='rmp'){var rk=+b.dataset.k,rt=t;ask('Remove this player?',function(){S.rs[rt].splice(rk,1);save();render()});return}
   if(PICKA.indexOf(a)>=0){if(p===undefined&&S.rs[t].length){PEND=b;PTIME=PS[S.per]+' '+now();PTUP=nowUp();openPick(a,t);return}if(p===undefined)p=-1}
   if(a=='theme'){var r=document.documentElement;var dark=r.dataset.theme?r.dataset.theme=='dark':matchMedia('(prefers-color-scheme:dark)').matches;r.dataset.theme=dark?'light':'dark';return}
-  if(a=='undo'){if(H.length){S=JSON.parse(H.pop());S.run=false;save();render()}return}
+  if(a=='undo'){if(H.length){var liveRun=S.run,liveEl=S.el;if(liveRun)liveEl=Math.min(plen(),liveEl+Math.max(0,(Date.now()-last)/1000));var restored=JSON.parse(H.pop());restored.el=Math.min(restored.per<2?restored.len*60:0,liveEl);restored.run=liveRun;S=restored;last=Date.now();save();render()}return}
   if(a=='reset'){if(confirm('Start a new match? This clears score, clock and log.')){snap();S=Object.assign(fresh(),{len:S.len,maxto:S.maxto,names:S.names,rs:S.rs.map(function(r){return r.map(function(x){return{n:x.n,name:x.name,g:0,y:0,r:0,s:0}})})});save();render()}return}
   snap();
   if(a=='run'){if(S.el>=plen()&&!S.run){H.pop();return}S.run=!S.run;last=Date.now();if(S.run)keepAwake();add(S.run?'Clock started':'Clock paused')}
