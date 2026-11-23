@@ -677,7 +677,7 @@ function handle(b,p){
   if(a=='reset'){if(confirm('Start a new match? This clears score, clock and log.')){snap();S=Object.assign(fresh(),{len:S.len,maxto:S.maxto,names:S.names,rs:S.rs.map(function(r){return r.map(function(x){return{n:x.n,name:x.name,g:0,y:0,r:0,s:0}})})});save();render()}return}
   snap();
   if(a=='run'){if(S.el>=plen()&&!S.run){H.pop();return}S.run=!S.run;last=Date.now();if(S.run)keepAwake();add(S.run?'Clock started':'Clock paused')}
-  else if(a=='next'){S.per++;S.el=0;S.run=false;S.sp=[[],[]];add('Start of '+PN[S.per]+' (ready)')}
+  else if(a=='next'){S.per++;S.el=0;S.run=false;/* Keep any unexpired 2-minute suspensions at half-time; they resume when the next period clock starts. */if(S.per>=2)S.sp=[[],[]];add('Start of '+PN[S.per]+' (ready)')}
   else if(a=='prev'){S.per--;S.el=(S.per==1?plen():0);S.run=false;add('Back to '+PN[S.per])}
   else if(a=='adj'){S.el=Math.min(plen(),Math.max(0,S.el-(+b.dataset.v)));add('Clock adjusted '+b.dataset.v+' s')}
   else if(a=='sog'||a=='som'){S.so[t].push({r:a=='sog'?1:0,p:p});var s2=soState(S.so);add('Shoot-out '+(a=='sog'?'GOAL':'MISSED')+' '+nm+pl(t,p)+' ('+s2.g[0]+'-'+s2.g[1]+')');if(s2.w>=0)add('Shoot-out won by '+S.names[s2.w])}
