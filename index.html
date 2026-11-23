@@ -191,7 +191,6 @@ body::after{content:"";position:fixed;right:-70px;bottom:-70px;width:340px;heigh
 <div class="card" id="popupCfg"></div>
 
 <div class="card" id="sponsorCfg"></div>
-<div class="card" id="promoCfg"></div>
 </div>
 <div id="pick" class="modal" hidden></div>
 </div>
@@ -224,10 +223,10 @@ function show(id){['gate','viewer','admin'].forEach(function(k){document.getElem
 function renderGate(msg){document.getElementById('gate').innerHTML='<div class="card" style="text-align:center;margin-top:20px">'+bigLogo()+'<h2 style="margin:4px 0 4px">Qatar Indian Handball Association</h2><p class="meta" style="margin:0 0 14px">Match Centre</p><div class="flags" style="justify-content:center;margin:0 0 12px">'+FLAGS+'</div><div class="row" style="flex-direction:column;align-items:stretch"><button class="pri" data-a="gview">👁 Viewer · watch live</button><button data-a="gadmin">🔐 Admin login · control match</button></div>'+(msg?'<p class="meta" style="color:var(--red)">'+msg+'</p>':'')+'<p class="meta">Admins score the game and run the clock. Viewers see the match live, read-only.</p></div>'}
 function showGate(msg){if(REGUN){REGUN();REGUN=null}if(LUN){LUN();LUN=null}if(UNSUB){UNSUB();UNSUB=null}MODE=null;show('gate');renderGate(msg)}
 async function gadmin(){init();if(!DB){showGate('Firebase is not set up yet. Check the settings at the top of the file.');return}if(AUTHU&&AUTHU.email==ADMIN_USER+'@handball.app'){enterAdmin();return}renderLogin()}
-function enterAdmin(){MODE='admin';show('admin');loadSaved();loadTM();loadRF();loadUrl();loadSubmissions();loadViewerPopup();loadSponsors();loadPromoVideos();render();renderPopupCfg();renderSponsorCfg();syncLive()}
+function enterAdmin(){MODE='admin';show('admin');loadSaved();loadTM();loadRF();loadUrl();loadSubmissions();loadViewerPopup();loadSponsors();render();renderPopupCfg();renderSponsorCfg();syncLive()}
 async function gview(){init();MODE='view';POPUP_CLOSED=false;VS=null;VMSG='';show('viewer');renderView();if(!DB){VMSG='Live data is not set up yet.';renderView();return}
   setTimeout(function(){if(MODE=='view'&&!VS){VMSG='Waiting for the match to start…';renderView()}},10000);
-  var r=DB.ref('live/current');var cb=r.on('value',function(sn){var d=sn.val();LURL=d&&d.streamUrl?d.streamUrl:'';renderLive();if(d&&d.s){try{applyViewRemote(d);VMSG=''}catch(e){}}else{VMSG='No live match yet.'}renderView()},function(){VMSG='Could not load the live match.';renderView()});var r2=DB.ref('saved');var cb2=r2.on('value',function(sn){var v=sn.val();SVV=v?Object.keys(v).map(function(k){return v[k]}).sort(function(a,b){return b.ts-a.ts}):[];if(MODE=='view')renderView()},function(){});var r5=DB.ref('live/refs');var cb5=r5.on('value',function(s){var v=s.val();RFERR=false;RFV=v?Object.keys(v).map(function(k){return v[k]}):[];if(MODE=='view'&&VTAB=='ref')renderView()},function(){RFERR=true;if(MODE=='view'&&VTAB=='ref')renderView()});var rp=DB.ref('live/viewerPopup');var cbp=rp.on('value',function(sn){VIEWPOP=sn.val()||null;if(MODE==='view'&&!POPUP_CLOSED)showViewerPopup()},function(){});var rspon=DB.ref('live/sponsors');var cbspon=rspon.on('value',function(sn){SPONSORS=sn.val()||{};if(MODE==='view')renderLive()},function(){});var rpromo=DB.ref('live/promotionalVideos');var cbpromo=rpromo.on('value',function(sn){PROMO_VIDEOS=sn.val()||{};if(MODE==='view')renderView()},function(){});UNSUB=function(){r5.off('value',cb5);r.off('value',cb);r2.off('value',cb2);rp.off('value',cbp);rspon.off('value',cbspon);rpromo.off('value',cbpromo);var lb=document.getElementById('vlivebox');if(lb)lb.innerHTML=''}}
+  var r=DB.ref('live/current');var cb=r.on('value',function(sn){var d=sn.val();LURL=d&&d.streamUrl?d.streamUrl:'';renderLive();if(d&&d.s){try{applyViewRemote(d);VMSG=''}catch(e){}}else{VMSG='No live match yet.'}renderView()},function(){VMSG='Could not load the live match.';renderView()});var r2=DB.ref('saved');var cb2=r2.on('value',function(sn){var v=sn.val();SVV=v?Object.keys(v).map(function(k){return v[k]}).sort(function(a,b){return b.ts-a.ts}):[];if(MODE=='view')renderView()},function(){});var r5=DB.ref('live/refs');var cb5=r5.on('value',function(s){var v=s.val();RFERR=false;RFV=v?Object.keys(v).map(function(k){return v[k]}):[];if(MODE=='view'&&VTAB=='ref')renderView()},function(){RFERR=true;if(MODE=='view'&&VTAB=='ref')renderView()});var rp=DB.ref('live/viewerPopup');var cbp=rp.on('value',function(sn){VIEWPOP=sn.val()||null;if(MODE==='view'&&!POPUP_CLOSED)showViewerPopup()},function(){});var rspon=DB.ref('live/sponsors');var cbspon=rspon.on('value',function(sn){SPONSORS=sn.val()||{};if(MODE==='view')renderLive()},function(){});UNSUB=function(){r5.off('value',cb5);r.off('value',cb);r2.off('value',cb2);rp.off('value',cbp);rspon.off('value',cbspon);var lb=document.getElementById('vlivebox');if(lb)lb.innerHTML=''}}
 function vpl(){return VS.per<2?VS.len*60:0}
 function vel(){return VS.run?Math.min(vpl(),VS.el+(Date.now()-VR)/1000):VS.el}
 function applyViewRemote(d){VS=Object.assign(fresh(),JSON.parse(d.s));VR=Date.now();if(VS.run&&d.at)VS.el=Math.min(VS.per<2?VS.len*60:0,VS.el+Math.max(0,(VR-d.at)/1000));}
@@ -334,7 +333,7 @@ function applyRemote(d){try{S=Object.assign(fresh(),JSON.parse(d.s));if(S.run){S
 function syncLive(){if(!DB)return;if(LUN){LUN();LUN=null}LFIRST=true;var r=DB.ref('live/current');
   var cb=r.on('value',function(sn){var d=sn.val();if(d&&typeof d.streamUrl==='string')LURL=d.streamUrl;if(LFIRST){LFIRST=false;if(d&&d.s)applyRemote(d);else push();return}if(d&&d.s&&d.by!==DEVID)applyRemote(d)},function(){});
   LUN=function(){r.off('value',cb)}}
-var RFERR=false,RF=[],RFV=[],PENDLOGO='',PENDRF='',RFEDIT='',ATAB='match',VTAB='live',REGS={},REGPLAYERCOUNT=0,REGUN=null,REGPHOTO='',REGVIEW='pending',VIEWPOP=null,POPUN=null,POPUP_CLOSED=false,POPUP_IMAGE='',SPONSORS={},PENDSPONSOR='',PROMO_VIDEOS={};
+var RFERR=false,RF=[],RFV=[],PENDLOGO='',PENDRF='',RFEDIT='',ATAB='match',VTAB='live',REGS={},REGPLAYERCOUNT=0,REGUN=null,REGPHOTO='',REGVIEW='pending',VIEWPOP=null,POPUN=null,POPUP_CLOSED=false,POPUP_IMAGE='',SPONSORS={},PENDSPONSOR='';
 try{RF=JSON.parse(localStorage.getItem('handball-refs-v1')||'[]')}catch(e){}
 var FLAGS='<svg viewBox="0 0 60 40" aria-label="India"><rect width="60" height="13.4" fill="#FF9933"/><rect y="13.3" width="60" height="13.4" fill="#fff"/><rect y="26.6" width="60" height="13.4" fill="#138808"/><circle cx="30" cy="20" r="5.2" fill="none" stroke="#000080" stroke-width="1"/><circle cx="30" cy="20" r="1" fill="#000080"/></svg><svg viewBox="0 0 60 40" aria-label="Qatar"><rect x="0.5" y="0.5" width="59" height="39" rx="2" fill="#8A1538" stroke="#ffffff" stroke-width="1"/><path fill="#fff" d="M0 0H17L25 2.2L17 4.4L25 6.7L17 8.9L25 11.1L17 13.3L25 15.6L17 17.8L25 20L17 22.2L25 24.4L17 26.7L25 28.9L17 31.1L25 33.3L17 35.6L25 37.8L17 40H0Z"/></svg>';
 var BUILD='Created 23-Nov-2026';
@@ -460,24 +459,6 @@ function addSponsor(){
   DB.ref('live/sponsors').push({name:name,logo:PENDSPONSOR,addedAt:Date.now()}).then(function(){PENDSPONSOR='';return DB.ref('live/sponsors').once('value')}).then(function(sn){SPONSORS=sn.val()||{};renderSponsorCfg()}).catch(function(e){var st=document.getElementById('sponsorStatus');if(st)st.textContent='Save failed: '+e.message});
 }
 function deleteSponsor(k){if(!DB||!AUTHU)return;DB.ref('live/sponsors/'+k).remove().then(function(){delete SPONSORS[k];renderSponsorCfg()}).catch(function(e){alert('Could not remove sponsor: '+e.message)})}
-function oneDriveEmbed(raw){
-  var v=String(raw||'').trim();
-  var m=v.match(/<iframe[^>]+src=["']([^"']+)["']/i);if(m)v=m[1].replace(/&amp;/g,'&');
-  try{
-    var u=new URL(v),h=u.hostname.toLowerCase();
-    if(u.protocol!=='https:')return '';
-    // Accept OneDrive embed URLs, SharePoint embed URLs, and standard 1drv.ms share links.
-    // Short links are passed to the embedded player as-is; playback depends on OneDrive
-    // sharing permissions and whether Microsoft permits that link to be framed.
-    if(h==='onedrive.live.com'||h==='1drv.ms'||h.endsWith('.sharepoint.com'))return u.href;
-    return '';
-  }catch(e){return ''}
-}
-function loadPromoVideos(){if(!DB||!AUTHU)return;DB.ref('live/promotionalVideos').once('value').then(function(sn){PROMO_VIDEOS=sn.val()||{};renderPromoCfg()}).catch(function(){renderPromoCfg()})}
-function renderPromoCfg(){var e=document.getElementById('promoCfg');if(!e)return;var list=Object.keys(PROMO_VIDEOS||{}).map(function(k){var v=PROMO_VIDEOS[k]||{};return '<div class="pr"><span><b>'+esc(v.title||'Promotional video')+'</b><div class="meta">OneDrive video link</div></span><button class="x" data-a="promodel" data-k="'+esc(k)+'" style="color:var(--red)">Remove</button></div>'}).join('');e.innerHTML='<h3>Promotional videos</h3><p class="meta" style="text-align:left">Add videos hosted on OneDrive. Paste an Embed URL / iframe code, or try a normal OneDrive sharing link (including 1drv.ms). For sharing links, playback depends on OneDrive permissions and browser embedding support.</p><input id="promoTitle" placeholder="Video title"><input id="promoUrl" placeholder="Paste OneDrive embed URL, iframe code, or 1drv.ms sharing link" style="margin-top:8px"><div class="row"><button class="pri" data-a="promoadd">Add promotional video</button></div><div id="promoStatus" class="meta"></div>'+(list||'<p class="meta">No promotional videos added yet.</p>')}
-function addPromoVideo(){var title=val('promoTitle').trim()||'Promotional video',raw=val('promoUrl').trim(),url=oneDriveEmbed(raw),st=document.getElementById('promoStatus');if(!url){if(st)st.textContent='Please paste a valid HTTPS OneDrive / SharePoint link or iframe code.';return}if(!DB||!AUTHU){if(st)st.textContent='Admin is not connected to Firebase.';return}DB.ref('live/promotionalVideos').push({title:title,url:url,addedAt:Date.now()}).then(function(){return DB.ref('live/promotionalVideos').once('value')}).then(function(sn){PROMO_VIDEOS=sn.val()||{};renderPromoCfg()}).catch(function(err){if(st)st.textContent='Could not save: '+err.message})}
-function deletePromoVideo(k){if(!DB||!AUTHU)return;DB.ref('live/promotionalVideos/'+k).remove().then(function(){delete PROMO_VIDEOS[k];renderPromoCfg();if(MODE==='view')renderView()}).catch(function(e){alert('Could not remove video: '+e.message)})}
-function promoViewerHtml(){var vids=Object.keys(PROMO_VIDEOS||{}).map(function(k){return PROMO_VIDEOS[k]}).filter(function(v){return v&&v.url});if(!vids.length)return '';return '<div class="card" style="margin-top:12px"><h3>Promotional videos</h3>'+vids.map(function(v){return '<div style="margin:12px 0"><b>'+esc(v.title||'Promotional video')+'</b><div style="position:relative;padding-top:56.25%;margin-top:7px;border-radius:12px;overflow:hidden;background:#000"><iframe src="'+esc(v.url)+'" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy" title="'+esc(v.title||'Promotional video')+'"></iframe></div></div>'}).join('')+'</div>'}
 function loadViewerPopup(){
   if(!DB||!AUTHU)return;
   DB.ref('live/viewerPopup').once('value').then(function(sn){var v=sn.val()||{};POPUP_IMAGE=v.image||'';renderPopupCfg()}).catch(function(){renderPopupCfg()});
@@ -530,7 +511,7 @@ function renderView(){var e=document.getElementById('vbody'),lb=document.getElem
   }
   h+='</div>';
   var rfs=(VS.rf||[]).filter(Boolean);if(rfs.length)h+='<div class="card"><h3>Referees</h3>'+rfs.map(function(r){return rcard(r,true)}).join('')+'</div>';
-  h+=promoViewerHtml();e.innerHTML=h;var viewer=document.getElementById('viewer');if(viewer&&lb)viewer.appendChild(lb)}
+  e.innerHTML=h;var viewer=document.getElementById('viewer');if(viewer&&lb)viewer.appendChild(lb)}
 setInterval(function(){if(MODE!='view'||!VS)return;var x=document.getElementById('vtm');if(x)x.textContent=fmt(Math.ceil(vpl()-vel()));document.querySelectorAll('[data-vs]').forEach(function(c){var p=c.dataset.vs.split('-'),t=vchip(+p[0],+p[1]);c.textContent=t;c.style.display=t?'':'none'})},250);
 function val(id){var e=document.getElementById(id);return e?e.value:''}
 function renderLogin(msg){show('gate');document.getElementById('gate').innerHTML='<div class="card" style="margin-top:20px">'+bigLogo()+'<h2 style="margin:4px 0 8px;text-align:center">Admin login</h2><input class="fld" id="lu" data-login="1" placeholder="Username" autocomplete="username" autocapitalize="none"><input class="fld" id="lp" data-login="1" type="password" placeholder="Password" autocomplete="current-password">'+(msg?'<p class="meta" style="color:var(--red)">'+esc(msg)+'</p>':'')+'<div class="row"><button class="pri" data-a="dologin">Log in</button><button data-a="gate">Back</button></div></div>'}
@@ -607,7 +588,7 @@ function render(){
   }
   document.getElementById('teams').innerHTML=t;
   document.getElementById('log').innerHTML=S.log.length?S.log.map(function(l){return'<div><b>'+l.t+'</b>'+esc(l.m)+'</div>'}).join(''):'<div>No events yet.</div>';
-  document.getElementById('len').value=S.len;document.getElementById('maxto').value=S.maxto;document.getElementById('brandA').innerHTML=brandHtml();renderSaved();renderTeams();renderLiveCfg();renderPopupCfg();renderSponsorCfg();renderPromoCfg();renderTabs();renderRefSel();renderRefsReg();
+  document.getElementById('len').value=S.len;document.getElementById('maxto').value=S.maxto;document.getElementById('brandA').innerHTML=brandHtml();renderSaved();renderTeams();renderLiveCfg();renderPopupCfg();renderSponsorCfg();renderTabs();renderRefSel();renderRefsReg();
 }
 
 document.addEventListener('click',function(ev){var b=ev.target.closest('button,[data-a]');if(!b||!b.dataset.a)return;handle(b)});
@@ -631,8 +612,6 @@ function handle(b,p){
   if(a=='regapprove'){approveSubmission(b.dataset.k);return}
   if(a=='popupsave'){saveViewerPopup();return}
   if(a=='sponsoradd'){addSponsor();return}
-  if(a=='promoadd'){addPromoVideo();return}
-  if(a=='promodel'){deletePromoVideo(b.dataset.k);return}
   if(a=='sponsordel'){deleteSponsor(b.dataset.k);return}
   if(a=='popupdisable'){disableViewerPopup();return}
   if(a=='closeviewerpopup'){closeViewerPopup();return}
